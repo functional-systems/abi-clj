@@ -1,41 +1,8 @@
 #+title: ABI clj
 
-* Requirements
-** Setup `~/.m2/settings.xml`
-- Get a [[https://github.com/settings/tokens][github developer token]] with `write:packages` permissions
+* Alpha experimental state
 
-- create the `~/.m2/settings.xml` with the following content and replacing the key YOUR_ACCESS_TOKEN with your new gh token
-
-#+NAME: settings.xml
-#+BEGIN_SRC xml
-<?xml version="1.0" encoding="utf-8"?>
-<settings>
-  <servers>
-    <server>
-      <id>revert-domain</id>
-      <username>private-user</username>
-      <password>${YOUR_ACCESS_TOKEN}</password>
-    </server>
-    ...
-</settings>
-#+END_SRC
-
-* Usage
-** Build the project
-
-#+NAME: build the lib jar
-#+BEGIN_SRC bash
-clojure -T:build jar
-#+END_SRC
-
-** Publish to github
-
-Note: make sure to change the lib version in the build.clj file
-
-#+NAME: build the lib jar
-#+BEGIN_SRC bash
-clojure -T:build deploy
-#+END_SRC
+Check the dev/playground.clj ns
 
 * License
 
