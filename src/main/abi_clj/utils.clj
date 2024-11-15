@@ -54,8 +54,14 @@
   [{type :type name :name}]
   (str type (when (seq name) " ") name))
 
-(defn function-item->signature
+(defn- dispatch-item-signature [item] (if (#{"function" "event"} (:type item))
+                                        "function"
+                                        (:type item)))
+
+(defmulti item->signature #'dispatch-item-signature)
+
+(defmethod item->signature "function"
   [{inputs :inputs fname :name}]
   (str fname (item->human-readable {:type "tuple" :components (map #(dissoc % :name) inputs)})))
 
-(def event-item->signature function-item->signature) ;; its the same implementation
+(defmethod item->signature :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
