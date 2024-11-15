@@ -17,7 +17,7 @@
 
 (utils.abi/function-item->signature loanInfo)
 
-(def loan-info-call (encode/function-data {:abi-item loanInfo
+(def loan-info-call (encode/function-call {:abi-item loanInfo
                                            :args [3794917]}))
 
 (defn http-rpc-call! [rpc]
