@@ -1,6 +1,6 @@
 (ns abi-clj.encode
   (:require
-   [abi-clj.utils.abi :as utils.abi]
+   [abi-clj.utils :as utils.abi]
    [abi-clj.utils.hex :as utils.hex]
    [clojure.string :as str])
   (:import

@@ -1,7 +1,7 @@
 (ns abi-clj.decode
   (:require
    [abi-clj.utils.hex :as utils.hex]
-   [abi-clj.utils.abi :as utils.abi]
+   [abi-clj.utils :as utils.abi]
    [clojure.string :as str])
   (:import
    [java.math BigInteger]
