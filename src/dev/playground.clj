@@ -21,8 +21,12 @@
 (def loan-info-call (encode/function-call {:abi-item loanInfo
                                            :args [3794917]}))
 
-(defn http-rpc-call! [rpc]
-  (let [url (System/getenv "ARBITRUM_RPC_URL")
+(def network->rpc
+  {:arbitrum (System/getenv "ARBITRUM_RPC_URL")
+   :optimism (System/getenv "OPTIMISM_RPC_URL")})
+
+(defn http-rpc-call! [network rpc]
+  (let [url (network->rpc network)
         [success body]
         (try [true (-> url (http/post
                             {:accept       :json
@@ -41,7 +45,8 @@
                                                 {:causes error}))
       :else                     (throw body))))
 
-(def res (http-rpc-call! {:jsonrpc "2.0"
+(def res (http-rpc-call! :arbitrum
+                         {:jsonrpc "2.0"
                           :method "eth_call"
                           :id 10
                           :params [{:to "0x74e6afef5705beb126c6d3bf46f8fad8f3e07825"
@@ -73,19 +78,47 @@
 
 (comment
 
-  (def curr-bn (BigInteger. (str/replace (:result (http-rpc-call! {:jsonrpc "2.0"
+  (def curr-bn (BigInteger. (str/replace (:result (http-rpc-call! :arbitrum
+                                                                  {:jsonrpc "2.0"
                                                                    :method "eth_blockNumber"
                                                                    :id 10}))
                                          #"0x" "")
                             16))
 
-  (def res (http-rpc-call! {:jsonrpc "2.0"
+  (def res (http-rpc-call! :arbitrum
+                           {:jsonrpc "2.0"
                             :method "eth_getLogs"
                             :id 10
                             :params [{:fromBlock (format "0x%x" (BigInteger. (str (- curr-bn 10))))
                                       :topics [swaps-topic]}]}))
 
   (decode/event {:abi-item swap-event-abi :event (first (:result res))})
+
+;;
+  )
+
+(def all-sugar-abi (->> (json/read-str (slurp "./resources/abi/VeloSugar.json")
+                                       :key-fn keyword)
+                        (filter (comp #{"all"} :name))
+                        first))
+
+(def all-sugar-call (encode/function-call {:abi-item all-sugar-abi
+                                           :args [1 0]}))
+
+(comment
+
+  (def res (http-rpc-call! :optimism
+                           {:jsonrpc "2.0"
+                            :method "eth_call"
+                            :id 10
+                            :params [{:to "0x35F233BE126d7D08aB2D65E647E8c379b1FACF39"
+                                      :data all-sugar-call}]}))
+
+  (decode/function-result {:abi-item all-sugar-abi :data (:result res)})
+
+  (decode/param (assoc (first (:outputs all-sugar-abi)) :data (:result res)))
+
+  (count (:result res))
 
 ;;
   )
