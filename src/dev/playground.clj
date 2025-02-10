@@ -1,4 +1,4 @@
-(ns dev.playground
+(ns playground
   (:require
    [abi-clj.decode :as decode]
    [abi-clj.encode :as encode]
@@ -23,7 +23,9 @@
 
 (def network->rpc
   {:arbitrum (System/getenv "ARBITRUM_RPC_URL")
-   :optimism (System/getenv "OPTIMISM_RPC_URL")})
+   :optimism (System/getenv "OPTIMISM_RPC_URL")
+   :mainnet  (System/getenv "MAINNET_RPC_URL")
+   :base     (System/getenv "BASE_RPC_URL")})
 
 (defn http-rpc-call! [network rpc]
   (let [url (network->rpc network)
@@ -121,4 +123,26 @@
   (count (:result res))
 
 ;;
+  )
+
+(def slot0-abi (->> (json/read-str (slurp "./resources/abi/UniV3Pool.json")
+                                   :key-fn keyword)
+                    (filter (comp #{"slot0"} :name))
+                    first))
+
+(def slot0-call (encode/function-call {:abi-item slot0-abi}))
+
+(comment
+
+  (def res (http-rpc-call! :arbitrum
+                           {:jsonrpc "2.0"
+                            :method "eth_call"
+                            :id 10
+                            :params [{:to "0x2f5e87c9312fa29aed5c179e456625d79015299c"
+                                      :data slot0-call}
+                                     "latest"]}))
+
+  (decode/function-result {:abi-item slot0-abi :data (:result res)})
+
+  ;;
   )

@@ -1,6 +1,7 @@
 (ns abi-clj.utils
   (:require
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [clojure.walk])
   (:import
    [java.lang Integer]))
 
@@ -54,7 +55,7 @@
   (if (item->is-dynamic? item)
     64
     (let [match (re-seq #"\[(\d+)\]" type)
-          type (re-matches #"^((uint|int|bool|address|bytes)(\d+)?).*$" type)]
+          type (re-matches #"^((uint|int|bool|address|bytes|tuple)(\d+)?).*$" type)]
       (apply * (item->size {:type (second type)}) (map (comp Integer/parseInt second) match)))))
 
 (defmethod item->size :default [_] 64)
@@ -95,8 +96,17 @@
 
 (defmulti item->signature #'dispatch-item-signature)
 
+(defn dissoc-name [xs]
+  (clojure.walk/postwalk
+   (fn [x] (if (:components x)
+             (assoc x :components (map #(dissoc % :name :indexed) (:components x)))
+             x)) xs))
+
 (defmethod item->signature "function"
   [{inputs :inputs fname :name}]
-  (str fname (item->human-readable {:type "tuple" :components (map #(dissoc % :name :indexed) inputs)})))
+  (->> {:type "tuple" :components inputs}
+       dissoc-name
+       item->human-readable
+       (str fname)))
 
 (defmethod item->signature :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
