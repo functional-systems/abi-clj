@@ -1,11 +1,10 @@
 (ns univ4-playground
   (:require
-   [abi-clj.decode :as decode]
    [abi-clj.encode :as encode]
-   [abi-clj.utils :as utils.abi]
+   [abi-clj.decode :as decode]
    [abi-clj.utils.hex :as utils.hex]
-   [clj-http.client :as http]
    [clojure.data.json :as json]
+   [clojure.java.io :as io]
    [clojure.string :as str]
    [playground]))
 
@@ -71,14 +70,14 @@
 
 (= collect-call sol-collect-call)
 
-(playground/http-rpc-call! :base
-                           {:jsonrpc "2.0"
-                            :method "eth_call"
-                            :id 10
-                            :params [{:to "0x7C5f5A4bBd8fD63184577525326123B519429bDc"
-                                      :data (encode/function-call
-                                             {:abi-item modify-liquidities-abi
-                                              :args {:unlockData params :deadline (+ (quot (System/currentTimeMillis) 1000) 60)}})}]})
+#_(playground/http-rpc-call! :base
+                             {:jsonrpc "2.0"
+                              :method "eth_call"
+                              :id 10
+                              :params [{:to "0x7C5f5A4bBd8fD63184577525326123B519429bDc"
+                                        :data (encode/function-call
+                                               {:abi-item modify-liquidities-abi
+                                                :args {:unlockData params :deadline (+ (quot (System/currentTimeMillis) 1000) 60)}})}]})
 
 ;;; UNIV3 Uncollected fees call works
 
@@ -102,3 +101,74 @@
                             :params [{:to "0xc36442b4a4522e871399cd717abdd847ab11fe88"
                                       :data uncollect-call}
                                      "latest"]})
+
+;; 1. Define the ABIs
+(def position-liquidity-abi (->> (json/read-str (slurp (io/resource "abi/UniV4PositionManager.json"))
+                                                :key-fn keyword)
+                                 (filter (comp #{"getPositionLiquidity"} :name))
+                                 first))
+
+(def state-view-abi (->> (json/read-str (slurp (io/resource "abi/StateView.json"))
+                                        :key-fn keyword)
+                         (filter (comp #{"getSlot0"} :name))
+                         first))
+
+  ;; 2. Create the encoded function calls
+(def position-liquidity-call (encode/function-call {:abi-item position-liquidity-abi
+                                                    :args [6545]}))  ;; position ID
+
+  ;; First get the position info
+(def pool-and-position-abi (->> (json/read-str (slurp (io/resource "abi/UniV4PositionManager.json"))
+                                               :key-fn keyword)
+                                (filter (comp #{"getPoolAndPositionInfo"} :name))
+                                first))
+
+(def pool-and-position-call (encode/function-call {:abi-item pool-and-position-abi
+                                                   :args [6545]}))  ;; Updated position ID
+
+(def pos-res (playground/http-rpc-call! :base
+                                        {:jsonrpc "2.0"
+                                         :method "eth_call"
+                                         :id 10
+                                         :params [{:to "0x7c5f5a4bbd8fd63184577525326123b519429bdc"
+                                                   :data pool-and-position-call}]}))
+
+(def pos (decode/function-result {:abi-item pool-and-position-abi :data (:result pos-res)}))
+
+(def pool-id "0xe87077fd043c1a6afa5256104acb1d1eb5ca5bc031ee57f9d96c8172ead4bef8")
+(count pool-id)
+
+(def slot0-call (encode/function-call {:abi-item state-view-abi
+                                       :args {:poolId (utils.hex/keccak-256 (encode/param {:type "tuple"
+                                                                                           :components [{:type "address"
+                                                                                                         :name "currency0"}
+                                                                                                        {:type "address"
+                                                                                                         :name "currency1"}
+                                                                                                        {:type "uint24"
+                                                                                                         :name "fee"}
+                                                                                                        {:type "int24"
+                                                                                                         :name "tickSpacing"}
+                                                                                                        {:type "address"
+                                                                                                         :name "hooks"}]
+                                                                                           :value (select-keys (:poolKey pos) [:currency0 :currency1 :fee :tickSpacing :hooks])}))}}))
+
+  ;; Error here
+(def slot0-res (playground/http-rpc-call! :base
+                                          {:jsonrpc "2.0"
+                                           :method "eth_call"
+                                           :id 10
+                                           :params [{:to "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71" ;; StateView
+                                                     :data slot0-call}]}))
+
+(def liquidity-res (playground/http-rpc-call! :base
+                                              {:jsonrpc "2.0"
+                                               :method "eth_call"
+                                               :id 10
+                                               :params [{:to "0x7c5f5a4bbd8fd63184577525326123b519429bdc" ;; PositionManager
+                                                         :data position-liquidity-call}]}))
+
+(def position-liquidity (decode/function-result {:abi-item position-liquidity-abi
+                                                 :data (:result liquidity-res)}))
+
+(def current-pool-state (decode/function-result {:abi-item state-view-abi
+                                                 :data (:result slot0-res)}))
