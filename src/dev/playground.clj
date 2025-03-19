@@ -4,18 +4,19 @@
    [abi-clj.encode :as encode]
    [abi-clj.utils :as utils.abi]
    [clj-http.client :as http]
-   [clojure.data.json :as json]))
+   [clojure.data.json :as json]
+   [clojure.string :as str]))
 
 (def abi (json/read-str (slurp "./resources/abi/V3Vault.json")
                         :key-fn keyword))
 
 (def loanInfo (first (filter (comp #{"loanInfo"} :name) abi)))
 
-(encode/function-signature loanInfo)
+(encode/signature loanInfo)
 
 (utils.abi/item->human-readable loanInfo)
 
-(utils.abi/function-item->signature loanInfo)
+(utils.abi/item->signature loanInfo)
 
 (def loan-info-call (encode/function-call {:abi-item loanInfo
                                            :args [3794917]}))
@@ -63,18 +64,25 @@
 
 (def mint-human-abi (utils.abi/item->human-readable mint-abi))
 
-(def swap-event-abi (->> (json/read-str (slurp "./resources/abi/UniV3Pool.abi")
+(def swap-event-abi (->> (json/read-str (slurp "./resources/abi/UniV3Pool.json")
                                         :key-fn keyword)
                          (filter (comp #{"Swap"} :name))
                          first))
 
-(def swaps-topic (encode/event-signature swap-event-abi))
+(def swaps-topic (encode/signature swap-event-abi))
 
 (comment
+
+  (def curr-bn (BigInteger. (str/replace (:result (http-rpc-call! {:jsonrpc "2.0"
+                                                                   :method "eth_blockNumber"
+                                                                   :id 10}))
+                                         #"0x" "")
+                            16))
+
   (def res (http-rpc-call! {:jsonrpc "2.0"
                             :method "eth_getLogs"
                             :id 10
-                            :params [{:fromBlock (format "0x%x" (BigInteger. "274782640"))
+                            :params [{:fromBlock (format "0x%x" (BigInteger. (str (- curr-bn 10))))
                                       :topics [swaps-topic]}]}))
 
   (decode/event {:abi-item swap-event-abi :event (first (:result res))})

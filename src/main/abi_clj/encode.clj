@@ -58,14 +58,6 @@
   [{value :value}]
   (utils.hex/pad value {:dir :right}))
 
-(defmethod param :dbytes
-  [{value :value}]
-  (let [size (utils.hex/size value)
-        padded (if (not= 0 (mod size 32))
-                 (utils.hex/pad value {:dir :right :size (* 32 (Math/ceil (/ size 32)))})
-                 value)]
-    (utils.hex/concat [(param {:type "uint" :value size}) padded])))
-
 (defmethod param :unumber
   [{value :value}]
   (utils.hex/pad (format "%x" (BigInteger. (str value)))))
@@ -76,27 +68,42 @@
                                 (.add (BigInteger. (str value)) (.shiftLeft (BigInteger. (str "1")) (* 32 8)))
                                 (BigInteger. (str value))))))
 
-(defmethod param :string
-  [{value :value}]
-  (let [hex-value (str "0x" (Hex/toHexString (.getBytes value StandardCharsets/UTF_8)))
-        size (utils.hex/size hex-value)
-        parts-length (Math/ceil (/ size 32))]
-    (->> (range 0 parts-length)
-         (map (fn [i] (utils.hex/pad (subs hex-value (* i 32) (min (count hex-value) (* (inc i) 32))) {:dir :right})))
-         (concat [(param {:type "uint" :value size})])
-         utils.hex/concat)))
+;; (defmethod param :dbytes
+;;   [{value :value}]
+;;   (let [size (utils.hex/size value)
+;;         padded (if (not= 0 (mod size 32))
+;;                  (utils.hex/pad value {:dir :right :size (* 32 (Math/ceil (/ size 32)))})
+;;                  value)]
+;;     (utils.hex/concat [(param {:type "uint" :value size}) padded])))
 
-(defn function-signature [function-abi-item]
-  (str "0x" (-> (utils.abi/function-item->signature function-abi-item)
+;; (defmethod param :string
+;;   [{value :value}]
+;;   (let [hex-value (str "0x" (Hex/toHexString (.getBytes value StandardCharsets/UTF_8)))
+;;         size (utils.hex/size hex-value)
+;;         parts-length (Math/ceil (/ size 32))]
+;;     (->> (range 0 parts-length)
+;;          (map (fn [i] (utils.hex/pad (subs hex-value (* i 32) (min (count hex-value) (* (inc i) 32))) {:dir :right})))
+;;          (concat [(param {:type "uint" :value size})])
+;;          utils.hex/concat)))
+
+(defmethod param :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
+
+(defmulti signature :type)
+
+(defmethod signature "function"
+  [function-abi-item]
+  (str "0x" (-> (utils.abi/item->signature function-abi-item)
                 utils.hex/keccak-256
                 (subs 0 8))))
 
-(defn event-signature [event-abi-item]
+(defmethod signature "event" [event-abi-item]
   (str "0x"
-       (-> (utils.abi/function-item->signature event-abi-item)
+       (-> (utils.abi/item->signature event-abi-item)
            utils.hex/keccak-256)))
+
+(defmethod signature :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
 
 (defn function-call
   [{abi-item :abi-item args :args}]
-  (utils.hex/concat [(function-signature abi-item)
+  (utils.hex/concat [(signature abi-item)
                      (param {:type "tuple" :components (:inputs abi-item) :value args})]))

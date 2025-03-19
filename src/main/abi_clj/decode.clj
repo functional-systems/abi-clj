@@ -86,6 +86,8 @@
                   Integer/parseInt)]
     (subs data 0 (+ 2 (* size 2)))))
 
+(defmethod param :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
+
 (defn event
   [{abi-item :abi-item event :event}]
   (param {:type "tuple" :components (:inputs abi-item) :data (utils.hex/concat (conj (vec (rest (:topics event)))
