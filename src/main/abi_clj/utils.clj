@@ -6,7 +6,7 @@
 
 (defn- dispatch-param [{type :type}]
   (cond
-    (re-matches #"^((uint|int|bool|address|bytes|tuple)(\d+)?)((\[\d+\])+)$" type) :vector
+    (re-matches #"^((uint|int|bool|address|bytes|tuple|string)(\d+)?)((\[\d*\])+)$" type) :vector
     (= type "tuple")                   :tuple
     (= type "bool")                    :static
     (= type "address")                 :static
@@ -16,19 +16,48 @@
     (re-matches #"^bytes(\d+)$" type)  :static
     (re-matches #"^bytes$" type)       :dbytes))
 
+(defmulti item->is-dynamic? #'dispatch-param)
+
+(defmethod item->is-dynamic? :vector
+  [{type :type}]
+  (let [match (re-matches #"^((uint|int|bool|address|bytes|tuple|string)(\d+)?)((\[\d*\])+)$" type)
+        type (second match)
+        dimension (nth match 4)
+        rem-dim (re-matches #"((\[\d*\])+)(\[\d*\])$" dimension)
+        conc-dim (when rem-dim (second rem-dim))
+        dynamic? (= "[]" (last match))]
+    (or dynamic? (item->is-dynamic? {:type (str type conc-dim)}))))
+
+(defmethod item->is-dynamic? :tuple
+  [{components :components}]
+  (some item->is-dynamic? components))
+
+(defmethod item->is-dynamic? :string
+  [_] true)
+
+(defmethod item->is-dynamic? :dbytes
+  [_] true)
+
+(defmethod item->is-dynamic? :default
+  [_] false)
+
 (defmulti item->size #'dispatch-param)
 
-(defmethod item->size :static [_] 64)
-
 (defmethod item->size :tuple
-  [{components :components}]
-  (apply + (map item->size components)))
+  [{components :components :as item}]
+  (if (item->is-dynamic? item)
+    64
+    (apply + (map item->size components))))
 
 (defmethod item->size :vector
-  [{type :type}]
-  (let [match (re-seq #"\[(\d+)\]" type)
-        type (re-matches #"^((uint|int|bool|address|bytes)(\d+)?).*$" type)]
-    (apply * (item->size {:type (second type)}) (map (comp Integer/parseInt second) match))))
+  [{type :type :as item}]
+  (if (item->is-dynamic? item)
+    64
+    (let [match (re-seq #"\[(\d+)\]" type)
+          type (re-matches #"^((uint|int|bool|address|bytes)(\d+)?).*$" type)]
+      (apply * (item->size {:type (second type)}) (map (comp Integer/parseInt second) match)))))
+
+(defmethod item->size :default [_] 64)
 
 (defmulti item->human-readable :type)
 
