@@ -22,8 +22,8 @@
          pad (str/join (take (- 64 (count s)) (repeat "0")))]
      (apply str "0x" (if (= dir :left) [pad s] [s pad])))))
 
-(defn concat [values]
-  (->> values
+(defn concat [& values]
+  (->> (reduce clojure.core/concat [] values)
        (map #(str/replace % #"^0x" ""))
        (clojure.core/concat ["0x"])
        (str/join)))

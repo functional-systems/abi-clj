@@ -6,7 +6,7 @@
 
 (defn- dispatch-param [{type :type}]
   (cond
-    (re-matches #"^((uint|int|bool|address|bytes)(\d+)?)((\[\d+\])+)$" type) :vector
+    (re-matches #"^((uint|int|bool|address|bytes|tuple)(\d+)?)((\[\d+\])+)$" type) :vector
     (= type "tuple")                   :tuple
     (= type "bool")                    :static
     (= type "address")                 :static

@@ -7,9 +7,16 @@
    [java.math BigInteger]
    [java.lang Integer]))
 
+(defn- remove-0x [data]
+  (str/replace data #"^0x" ""))
+
+(defn- extract-data-at
+  ([data cursor] (extract-data-at data cursor 1))
+  ([data cursor len] (subs (remove-0x data) cursor (+ cursor (* len 64)))))
+
 (defn- decode-dispatch [{type :type}]
   (cond
-    (re-matches #"^((uint|int|bool|address|bytes)(\d+)?)((\[\d+\])+)$" type) :vector
+    (re-matches #"^((uint|int|bool|address|bytes|tuple)(\d+)?)((\[\d*\])+)$" type) :vector
     (= type "tuple")                   :tuple
     (= type "bool")                    :bool
     (= type "address")                 :address
@@ -23,16 +30,16 @@
 
 (defmethod param :tuple
   [{data :data
-    components :components}]
-  (let [value (str/replace data #"^0x" "")
+    components :components
+    ini-cursor :cursor :or {ini-cursor 0}}]
+  (let [data (remove-0x data)
         with-names? (every? :name components)
-        res (loop [cursor 0 component (first components) components (rest components) res []]
+        res (loop [cursor ini-cursor component (first components) components (rest components) res []]
               (if component
                 (let [size (utils.abi/item->size component)
-                      decoded (param (merge component {:data (utils.hex/concat [(subs value cursor (+ cursor size))])}))
+                      decoded (param (assoc component :data data :cursor cursor))
                       append (if with-names?
-                               [(keyword (:name component)) decoded]
-                               decoded)]
+                               [(keyword (:name component)) decoded] decoded)]
                   (recur (+ cursor size) (first components) (rest components) (conj res append)))
                 res))]
 
@@ -42,49 +49,68 @@
 
 (defmethod param :vector
   [{data :data
-    type :type}]
-  (let [match (re-matches #"^((uint|int|bool|address|bytes)(\d+)?)((\[\d+\])+)$" type)
+    type :type
+    ini-cursor :cursor :or {ini-cursor 0} :as component}]
+  (let [data (remove-0x data)
+        match (re-matches #"^((uint|int|bool|address|bytes|tuple)(\d+)?)((\[\d*\])+)$" type)
         type (second match)
         dimension (nth match 4)
-        rem-dim (re-matches #"((\[\d+\])+)(\[\d+\])$" dimension)
+        rem-dim (re-matches #"((\[\d*\])+)(\[\d*\])$" dimension)
         conc-dim (when rem-dim (second rem-dim))
-        len (- (count data) 2)
-        split (->> (nth match 5)
-                   (re-matches #"^\[(\d+)\]")
-                   second
-                   Integer/parseInt
-                   (/ len))]
-    (->> (partition-all split (str/replace data #"^0x" ""))
-         (map #(param {:type (str type conc-dim) :data (utils.hex/concat [(str/join %)])}))
+        size (utils.abi/item->size (assoc component :type (str type conc-dim)))
+        dynamic? (= "[]" (last match))
+        [len ini-cursor] (if dynamic?
+                           (let [offset (param {:type "uint256" :data data :cursor ini-cursor})]
+                             [(param {:type "uint256" :data data :cursor (+ ini-cursor (* 2 offset))})
+                              (+ ini-cursor (* 2 offset) 64)])
+
+                           [(-> (last match)
+                                (str/replace #"\[|\]" "")
+                                Integer/parseInt)
+                            ini-cursor])]
+
+    (->> (iterate #(+ size %) 0)
+         (take len)
+         (map #(param {:type (str type conc-dim) :data data :cursor (+ ini-cursor %)}))
          vec)))
 
+(comment
+
+  (def size 64)
+  (def len 4)
+
+  (->> (iterate #(+ size %) 0)
+       (take len))
+
+;;
+  )
+
 (defmethod param :unumber
-  [{data :data}]
-  (BigInteger. (str/replace data #"^0x" "") 16))
+  [{data :data cursor :cursor :or {cursor 0}}]
+  (BigInteger. (extract-data-at data cursor) 16))
 
 (defmethod param :number
-  [{data :data}]
-  (let [val (BigInteger. (str/replace data #"^0x" "") 16)
+  [{data :data cursor :cursor :or {cursor 0}}]
+  (let [val (BigInteger. (extract-data-at data cursor) 16)
         max (.subtract (.shiftLeft (BigInteger. (str "1")) (- (* 32 8) 1)) (BigInteger. (str 1)))]
     (if (< val max) val
         (.subtract val (.shiftLeft (BigInteger. (str "1")) (* 32 8))))))
 
 (defmethod param :address
-  [{data :data}]
-  (utils.hex/concat [(-> data
-                         (str/replace #"^0x" "")
+  [{data :data cursor :cursor :or {cursor 0}}]
+  (utils.hex/concat [(-> (extract-data-at data cursor)
                          (subs (- 64 40) 64))]))
 
 (defmethod param :bool
-  [{data :data}]
-  (< 0 (BigInteger. (str/replace data #"^0x" ""))))
+  [{data :data cursor :cursor :or {cursor 0}}]
+  (< 0 (BigInteger. (extract-data-at data cursor))))
 
 (defmethod param :bytes
-  [{data :data type :type}]
+  [{data :data type :type cursor :cursor :or {cursor 0}}]
   (let [size (->> (re-matches #"^bytes(\d+)$" type)
                   second
                   Integer/parseInt)]
-    (subs data 0 (+ 2 (* size 2)))))
+    (utils.hex/concat [(subs (extract-data-at data cursor) 0 (* size 2))])))
 
 (defmethod param :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
 
