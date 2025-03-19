@@ -86,11 +86,17 @@
          (concat [(param {:type "uint" :value size})])
          utils.hex/concat)))
 
-(defn signature [function-abi-item]
-  (-> (utils.hex/keccak-256 (utils.abi/function-item->signature function-abi-item))
-      (subs 0 8)))
+(defn function-signature [function-abi-item]
+  (str "0x" (-> (utils.abi/function-item->signature function-abi-item)
+                utils.hex/keccak-256
+                (subs 0 8))))
+
+(defn event-signature [event-abi-item]
+  (str "0x"
+       (-> (utils.abi/function-item->signature event-abi-item)
+           utils.hex/keccak-256)))
 
 (defn function-data
   [{abi-item :abi-item args :args}]
-  (utils.hex/concat [(signature abi-item)
+  (utils.hex/concat [(function-signature abi-item)
                      (param {:type "tuple" :components (:inputs abi-item) :value args})]))

@@ -57,3 +57,5 @@
 (defn function-item->signature
   [{inputs :inputs fname :name}]
   (str fname (item->human-readable {:type "tuple" :components (map #(dissoc % :name) inputs)})))
+
+(def event-item->signature function-item->signature) ;; its the same implementation

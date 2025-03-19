@@ -87,8 +87,9 @@
     (subs data 0 (+ 2 (* size 2)))))
 
 (defn event
-  [{abi-item :abi-item data :data}]
-  (param {:type "tuple" :components (:inputs abi-item) :data data}))
+  [{abi-item :abi-item event :event}]
+  (param {:type "tuple" :components (:inputs abi-item) :data (utils.hex/concat (conj (vec (rest (:topics event)))
+                                                                                     (:data event)))}))
 
 (defn function-result
   [{abi-item :abi-item data :data}]

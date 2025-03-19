@@ -4,14 +4,16 @@
    [abi-clj.encode :as encode]
    [abi-clj.utils.abi :as utils.abi]
    [clj-http.client :as http]
-   [clojure.data.json :as json]))
+   [clojure.data.json :as json]
+   [clojure.string :as str]
+   [abi-clj.utils.hex :as utils.hex]))
 
 (def abi (json/read-str (slurp "./resources/abi/V3Vault.json")
                         :key-fn keyword))
 
 (def loanInfo (first (filter (comp #{"loanInfo"} :name) abi)))
 
-(encode/signature loanInfo)
+(encode/function-signature loanInfo)
 
 (utils.abi/item->human-readable loanInfo)
 
@@ -44,8 +46,7 @@
                           :method "eth_call"
                           :id 10
                           :params [{:to "0x74e6afef5705beb126c6d3bf46f8fad8f3e07825"
-                                    :data loan-info-call}
-                                   "latest"]}))
+                                    :data loan-info-call}]}))
 
 (decode/function-result {:abi-item loanInfo
                          :data (:result res)})
@@ -63,3 +64,24 @@
                    first))
 
 (def mint-human-abi (utils.abi/item->human-readable mint-abi))
+
+(def swap-event-abi (->> (json/read-str (slurp "./resources/abi/UniV3Pool.abi")
+                                        :key-fn keyword)
+                         (filter (comp #{"Swap"} :name))
+                         first))
+
+(def swaps-topic (encode/event-signature swap-event-abi))
+
+(comment
+  (def res (http-rpc-call! {:jsonrpc "2.0"
+                            :method "eth_getLogs"
+                            :id 10
+                            :params [{:fromBlock (format "0x%x" (BigInteger. "274782640"))
+                                      :topics [swaps-topic]}]}))
+
+  (decode/event {:abi-item swap-event-abi :event (first (:result res))})
+
+  (/ (- (count (:data (first (:result res)))) 2) 64)
+
+;;
+  )
