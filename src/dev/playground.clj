@@ -5,7 +5,8 @@
    [abi-clj.utils :as utils.abi]
    [clj-http.client :as http]
    [clojure.data.json :as json]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [abi-clj.utils.hex :as utils.hex]))
 
 (def abi (json/read-str (slurp "./resources/abi/V3Vault.json")
                         :key-fn keyword))
@@ -91,7 +92,7 @@
                            {:jsonrpc "2.0"
                             :method "eth_getLogs"
                             :id 10
-                            :params [{:fromBlock (format "0x%x" (BigInteger. (str (- curr-bn 10))))
+                            :params [{:fromBlock (utils.hex/number->hex (- curr-bn 10))
                                       :topics [swaps-topic]}]}))
 
   (decode/event {:abi-item swap-event-abi :event (first (:result res))})

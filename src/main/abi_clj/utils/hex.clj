@@ -8,7 +8,7 @@
 
 (defn ->number
   [hex]
-  (BigInteger. (str/replace hex #"0x" "") 16))
+  (bigint (BigInteger. (str/replace hex #"0x" "") 16)))
 
 (defn number->hex
   [num]
