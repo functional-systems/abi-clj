@@ -96,14 +96,15 @@
 
 (defmethod param :unumber
   [{data :data cursor :cursor :or {cursor 0}}]
-  (BigInteger. (extract-data-at data cursor) 16))
+  (bigint (BigInteger. (extract-data-at data cursor) 16)))
 
 (defmethod param :number
   [{data :data cursor :cursor :or {cursor 0}}]
   (let [val (BigInteger. (extract-data-at data cursor) 16)
         max (.subtract (.shiftLeft (BigInteger. (str "1")) (- (* 32 8) 1)) (BigInteger. (str 1)))]
-    (if (< val max) val
-        (.subtract val (.shiftLeft (BigInteger. (str "1")) (* 32 8))))))
+    (bigint
+     (if (< val max) val
+         (.subtract val (.shiftLeft (BigInteger. (str "1")) (* 32 8)))))))
 
 (defmethod param :address
   [{data :data cursor :cursor :or {cursor 0}}]

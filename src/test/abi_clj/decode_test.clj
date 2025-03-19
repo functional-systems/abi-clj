@@ -8,9 +8,9 @@
     (t/testing "Should decode a uint"
       (t/is (= 69420N
                (sut/param {:type "uint256" :data "0x0000000000000000000000000000000000000000000000000000000000010f2c"})))
-      (t/is (= 69420
+      (t/is (= 69420N
                (sut/param {:type "uint32" :data "0x0000000000000000000000000000000000000000000000000000000000010f2c"})))
-      (t/is (= 32
+      (t/is (= 32N
                (sut/param {:type "uint8" :data "0x0000000000000000000000000000000000000000000000000000000000000020"}))))
 
     (t/testing "Should decode an int"
@@ -18,13 +18,13 @@
                (sut/param {:type "int256" :data "0x0000000000000000000000000000000000000000000000000000000000010f2c"})))
       (t/is (= -69420N
                (sut/param {:type "int256" :data "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffef0d4"})))
-      (t/is (= 127
+      (t/is (= 127N
                (sut/param {:type "int8" :data "0x000000000000000000000000000000000000000000000000000000000000007f"})))
-      (t/is (= -128
+      (t/is (= -128N
                (sut/param {:type "int8" :data "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff80"})))
-      (t/is (= 2147483647
+      (t/is (= 2147483647N
                (sut/param {:type "int32" :data "0x000000000000000000000000000000000000000000000000000000007fffffff"})))
-      (t/is (= -2147483648
+      (t/is (= -2147483648N
                (sut/param {:type "int32" :data "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffff80000000"}))))
 
     (t/testing "Should decode an address"
@@ -98,7 +98,7 @@
                 :baz {:x 69N
                       :y false
                       :z "0xc961145a54c96e3ae9baa048c4f4d6b04c13916b"}
-                :x [1 2]}
+                :x [1N 2N]}
                (sut/param {:type "tuple"
                            :components [{:components [{:name "x"
                                                        :type "uint256"}
@@ -128,7 +128,7 @@
 
     (t/testing "Should decode a tuple"
       (t/is (= {:foo "wagmi"
-                :nft 10}
+                :nft 10N}
                (sut/param {:type "tuple"
                            :components [{:type "uint256"
                                          :name "nft"}
@@ -136,7 +136,7 @@
                                          :name "foo"}]
                            :data "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000057761676d69000000000000000000000000000000000000000000000000000000"})))
       (t/is (= [{:foo "wagmi"
-                 :nft 10}]
+                 :nft 10N}]
                (sut/param {:type "tuple[]"
                            :components [{:type "uint256"
                                          :name "nft"}
