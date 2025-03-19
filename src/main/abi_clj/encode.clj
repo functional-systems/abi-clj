@@ -96,7 +96,7 @@
        (-> (utils.abi/function-item->signature event-abi-item)
            utils.hex/keccak-256)))
 
-(defn function-data
+(defn function-call
   [{abi-item :abi-item args :args}]
   (utils.hex/concat [(function-signature abi-item)
                      (param {:type "tuple" :components (:inputs abi-item) :value args})]))
