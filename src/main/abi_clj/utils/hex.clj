@@ -24,10 +24,10 @@
   (format "0x%x" (BigInteger. (str num))))
 
 (defn pad
-  ([value] (pad value {:dir :left}))
-  ([value {:keys [dir]}]
+  ([value] (pad value {}))
+  ([value {:keys [dir size] :or {size 32 dir :left}}]
    (let [s (str/replace value #"^0x" "")
-         pad (str/join (take (- 64 (count s)) (repeat "0")))]
+         pad (str/join (take (- (* size 2) (count s)) (repeat "0")))]
      (apply str "0x" (if (= dir :left) [pad s] [s pad])))))
 
 (defn concat [& values]
@@ -41,3 +41,15 @@
       (str/replace #"^0x" "")
       count
       (/ 2)))
+
+(defn subs
+  ([s start]
+   (-> s
+       (str/replace #"^0x" "")
+       (clojure.core/subs start)
+       concat))
+  ([s start end]
+   (-> s
+       (str/replace #"^0x" "")
+       (clojure.core/subs start end)
+       concat)))

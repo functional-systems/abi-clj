@@ -18,8 +18,8 @@ stdenv.mkDerivation {
   # Post Shell Hook
   shellHook = ''
     export $(cat .env | xargs)
-    alias backend_repl="clj -J-Dvlaaad.reveal.prefs='{:font-family \"Intel One Mono\" :font-size 20}' -M:repl"
+    alias repl="clj -J-Dvlaaad.reveal.prefs='{:font-family \"Intel One Mono\" :font-size 20}' -M:repl"
 
-    backend_repl
+    repl
   '';
 }
