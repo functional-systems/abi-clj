@@ -1,9 +1,6 @@
 {:paths ["src/main" "resources"]
  :deps {org.bouncycastle/bcprov-jdk18on {:mvn/version "1.77"}}
 
- :mvn/repos
- {"fsys" {:url "https://maven.pkg.github.com/functional-systems/abi-clj"}}
-
  :aliases
  {:build {:extra-paths ["src/dev"]
           :deps {io.github.clojure/tools.build {:git/tag "v0.6.2" :git/sha "226fb52"}

@@ -2,11 +2,9 @@
   (:require
    [abi-clj.decode :as decode]
    [abi-clj.encode :as encode]
-   [abi-clj.utils.abi :as utils.abi]
+   [abi-clj.utils :as utils.abi]
    [clj-http.client :as http]
-   [clojure.data.json :as json]
-   [clojure.string :as str]
-   [abi-clj.utils.hex :as utils.hex]))
+   [clojure.data.json :as json]))
 
 (def abi (json/read-str (slurp "./resources/abi/V3Vault.json")
                         :key-fn keyword))
@@ -80,8 +78,6 @@
                                       :topics [swaps-topic]}]}))
 
   (decode/event {:abi-item swap-event-abi :event (first (:result res))})
-
-  (/ (- (count (:data (first (:result res)))) 2) 64)
 
 ;;
   )

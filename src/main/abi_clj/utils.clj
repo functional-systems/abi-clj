@@ -1,4 +1,4 @@
-(ns abi-clj.utils.abi
+(ns abi-clj.utils
   (:require
    [clojure.string :as str])
   (:import
