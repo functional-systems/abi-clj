@@ -70,6 +70,12 @@
        (when outputs " returns ")
        (when outputs (item->human-readable {:type "tuple" :components outputs}))))
 
+(defmethod item->human-readable "event"
+  [{inputs :inputs ename :name}]
+  (str "event "
+       ename
+       (item->human-readable {:type "tuple" :components inputs})))
+
 (defmethod item->human-readable "tuple"
   [{components :components name :name}]
   (let [with-name? (every? (comp seq :name) components)]
@@ -80,8 +86,8 @@
             name)))
 
 (defmethod item->human-readable :default
-  [{type :type name :name}]
-  (str type (when (seq name) " ") name))
+  [{type :type name :name indexed :indexed}]
+  (str type (when indexed " indexed") (when (seq name) " ") name))
 
 (defn- dispatch-item-signature [item] (if (#{"function" "event"} (:type item))
                                         "function"
@@ -91,6 +97,6 @@
 
 (defmethod item->signature "function"
   [{inputs :inputs fname :name}]
-  (str fname (item->human-readable {:type "tuple" :components (map #(dissoc % :name) inputs)})))
+  (str fname (item->human-readable {:type "tuple" :components (map #(dissoc % :name :indexed) inputs)})))
 
 (defmethod item->signature :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))

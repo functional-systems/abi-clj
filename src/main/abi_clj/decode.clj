@@ -141,8 +141,10 @@
 
 (defn event
   [{abi-item :abi-item event :event}]
-  (param {:type "tuple" :components (:inputs abi-item) :data (utils.hex/concat (conj (vec (rest (:topics event)))
-                                                                                     (:data event)))}))
+  (let [indexed (filter :indexed (:inputs abi-item))
+        not-indexed (filter (comp not :indexed) (:inputs abi-item))]
+    (param {:type "tuple" :components (concat indexed not-indexed) :data (utils.hex/concat (conj (vec (rest (:topics event)))
+                                                                                                 (:data event)))})))
 
 (defn function-result
   [{abi-item :abi-item data :data}]
