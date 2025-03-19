@@ -15,6 +15,14 @@
     (.update digest input-bytes)
     (Hex/toHexString (.digest digest))))
 
+(defn ->number
+  [hex]
+  (BigInteger. (str/replace hex #"0x" "") 16))
+
+(defn number->hex
+  [num]
+  (format "0x%x" (BigInteger. (str num))))
+
 (defn pad
   ([value] (pad value {:dir :left}))
   ([value {:keys [dir]}]
