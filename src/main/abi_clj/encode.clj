@@ -124,14 +124,13 @@
 
 (defmethod signature "function"
   [function-abi-item]
-  (str "0x" (-> (utils.abi/item->signature function-abi-item)
-                utils.hex/keccak-256
-                (subs 0 8))))
+  (-> (utils.abi/item->signature function-abi-item)
+      utils.hex/keccak-256
+      (subs 0 10)))
 
 (defmethod signature "event" [event-abi-item]
-  (str "0x"
-       (-> (utils.abi/item->signature event-abi-item)
-           utils.hex/keccak-256)))
+  (-> (utils.abi/item->signature event-abi-item)
+      utils.hex/keccak-256))
 
 (defmethod signature :default [_] (throw (ex-info "Not implemented" {:causes :lazyness})))
 
