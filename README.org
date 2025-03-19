@@ -1,0 +1,48 @@
+#+title: ABI clj
+
+* Requirements
+** Setup `~/.m2/settings.xml`
+- Get a [[https://github.com/settings/tokens][github developer token]] with `write:packages` permissions
+
+- create the `~/.m2/settings.xml` with the following content and replacing the key YOUR_ACCESS_TOKEN with your new gh token
+
+#+NAME: settings.xml
+#+BEGIN_SRC xml
+<?xml version="1.0" encoding="utf-8"?>
+<settings>
+  <servers>
+    <server>
+      <id>revert-domain</id>
+      <username>private-user</username>
+      <password>${YOUR_ACCESS_TOKEN}</password>
+    </server>
+    ...
+</settings>
+#+END_SRC
+
+* Usage
+** Build the project
+
+#+NAME: build the lib jar
+#+BEGIN_SRC bash
+clojure -T:build jar
+#+END_SRC
+
+** Publish to github
+
+Note: make sure to change the lib version in the build.clj file
+
+#+NAME: build the lib jar
+#+BEGIN_SRC bash
+clojure -T:build deploy
+#+END_SRC
+
+* License
+
+-   abi-clj
+-   Copyright (c) Functional Systems LLC. All rights reserved.
+-   The use and distribution terms for this software are covered by the
+-   Eclipse Public License 1.0 (https://opensource.org/license/epl-1-0/)
+-   which can be found in the file LICENSE at the root of this distribution.
+-   By using this software in any fashion, you are agreeing to be bound by the terms of this license.
+-   You must not remove this notice, or any other, from this software.
